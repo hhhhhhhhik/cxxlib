@@ -16,6 +16,7 @@
  #include <mutex>
  #include <functional>
  #include <condition_variable>
+ #include <memory>
 
  namespace cxxlib
  {
@@ -24,7 +25,7 @@
  	public:
  		typedef std::function<void()> Task;
  	public:
- 		explicit ThreadPool(const std::string& name = 
+ 		explicit ThreadPool(const std::string& _name = 
  			std::string("Thread Pool"));
  		~ThreadPool();
 
@@ -33,21 +34,21 @@
  			max_size = _max_size;
  		}
 
- 		const std::string name() const
+ 		std::string name() const
  		{
  			return name;
  		}
 
  		void setThreadInitCallback(const Task& _callback)
  		{
- 			callback = _callback;
+ 			init_callback = _callback;
  		}
 
- 		void start(int num);
+ 		void start(int num_threads);
  		void stop();
  		size_t size() const;
 
- 		void run(const Task& _task);
+ 		void addTask(const Task& _task);
 
  	private:
  		// FOR NONCOPYABLE
@@ -55,17 +56,23 @@
  		ThreadPool& operator = (const ThreadPool& );
 
  	private:
- 		bool isFull() const;
+ 		inline bool isFull() const
+ 		{
+ 			return max_size > 0 && tasks.size() >= max_size;
+ 		}
+ 		
  		Task get();
 
+ 		void runInternal();
+
  		mutable std::mutex mutex;
- 		std::condition_variable cond_not_empty;
- 		std::condition_variable cond_not_full;
+ 		std::condition_variable not_empty;
+ 		std::condition_variable not_full;
 
  		std::string name;
- 		Task callback;
- 		std::vector<std::thread*> threads;
- 		std::queue<Task> queue;
+ 		Task init_callback;
+ 		std::vector<std::shared_ptr<std::thread> > threads;
+ 		std::queue<Task> tasks;
 
  		size_t max_size;
  		bool running;
