@@ -34,7 +34,7 @@
  			max_size = _max_size;
  		}
 
- 		std::string name() const
+ 		std::string getName() const
  		{
  			return name;
  		}

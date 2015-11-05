@@ -32,13 +32,13 @@
  			std::unique_lock<std::mutex> lock(mutex);
  			while (count > 0)
  			{
- 				cond.wait();
+ 				cond.wait(lock);
  			}
  		}
 
  		void countDown()
  		{
- 			std::unique_lock<std::mutex> lock(mutex)
+ 			std::unique_lock<std::mutex> lock(mutex);
  			--count;
  			if (count == 0)
  			{
@@ -48,7 +48,7 @@
 
  		int getCount() const
  		{
- 			std::unique_lock<std::mutex> lock(mutex)
+ 			std::unique_lock<std::mutex> lock(mutex);
  			return count;
  		}
 

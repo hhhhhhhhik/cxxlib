@@ -5,7 +5,9 @@
  *      Author: Huang
  */
 
- #include "cxxlib/concurrency/ThreadPool.h"
+ #include <algorithm>
+
+ #include "ThreadPool.h"
 
  using namespace cxxlib;
 
@@ -55,7 +57,7 @@
  	}
  	std::for_each(threads.begin(),
  				  threads.end(),
- 				  std::bind(&std::thread::join), std::placeholders::_1);
+ 				  std::bind(&std::thread::join, std::placeholders::_1));
  }
 
  size_t ThreadPool::size() const
@@ -75,26 +77,26 @@
  		std::unique_lock<std::mutex> lock(mutex);
  		while (isFull())
  		{
- 			not_full.wait();
+ 			not_full.wait(lock);
  		}
 
- 		tasks.push_back(task);
+ 		tasks.push(task);
  		not_empty.notify_one();
  	}
  }
 
- ThreadPool::Task ThreadPool::take()
+ ThreadPool::Task ThreadPool::get()
  {
  	std::unique_lock<std::mutex> lock(mutex);
  	while (tasks.empty() && running)
  	{
- 		not_empty.wait();
+ 		not_empty.wait(lock);
  	}
  	Task task;
  	if (!tasks.empty())
  	{
  		task = tasks.front();
- 		tasks.pop_front();
+ 		tasks.pop();
  		if (max_size > 0)
  		{
  			not_full.notify_one();
@@ -114,7 +116,7 @@
  		}
  		while (running)
  		{
- 			Task task(take());
+ 			Task task(get());
  			if (task)
  			{
  				task();
